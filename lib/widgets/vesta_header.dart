@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-
 class VestaHeader extends StatelessWidget {
   final bool isDark;
-
   const VestaHeader({super.key, required this.isDark});
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         const Icon(
-          Icons.security, // Icono de escudo de seguridad para Vesta Red Team style
+          Icons.security, 
           size: 60,
-          color: Color(0xFFE03131), // Rojo Vesta
+          color: Color(0xFFE03131), 
         ),
         const SizedBox(height: 10),
         Text(

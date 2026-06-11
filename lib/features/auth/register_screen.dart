@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:vesta_app/services/auth_service.dart';
-
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
-
 class _RegisterScreenState extends State<RegisterScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final usernameController = TextEditingController();
   final countryController = TextEditingController();
-  
   final authService = AuthService();
   bool _isLoading = false;
   String? _errorMessage; 
-
   @override
   void dispose() {
     emailController.dispose();
@@ -28,31 +22,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     countryController.dispose();
     super.dispose();
   }
-
   Future<void> _handleRegister() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final username = usernameController.text.trim();
-
     if (email.isEmpty || !email.contains('@')) {
       setState(() {
         _errorMessage = "Por favor, introduce un correo electrónico válido.";
       });
       return;
     }
-
     if (password.length < 6) {
       setState(() {
         _errorMessage = "La contraseña debe tener al menos 6 caracteres.";
       });
       return;
     }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-
     try {
       await authService.register(email, password, username);
     } catch (e) {
@@ -63,7 +52,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,13 +70,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              
               const Text(
                 "Regístrese en Vesta",
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 25),
-              
               _buildInputField(label: "Correo electrónico", controller: emailController, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 15),
               _buildInputField(label: "Contraseña", controller: passwordController, obscureText: true),
@@ -96,9 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _buildInputField(label: "Nombre de usuario", controller: usernameController),
               const SizedBox(height: 15),
               _buildInputField(label: "Tu país / región", controller: countryController),
-              
               const SizedBox(height: 30),
-              
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -113,7 +97,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : const Text("Registrarse", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
-
               if (_errorMessage != null) ...[
                 const SizedBox(height: 20),
                 Container(
@@ -137,7 +120,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
   Widget _buildInputField({
     required String label,
     required TextEditingController controller,
