@@ -6,11 +6,10 @@ A new Flutter project.
 
 This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+VESTA es una solución de control parental de código abierto, 
+enfocada en la protección digital de menores de edad. 
+Su arquitectura multiplataforma permite la operación nativa en Android e iOS, 
+así como compatibilidad con Windows, Linux y macOS, 
+garantizando una experiencia unificada para tutores y 
+menores sin depender del sistema operativo utilizado.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
