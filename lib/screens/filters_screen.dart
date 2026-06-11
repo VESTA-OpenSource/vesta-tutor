@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 class FiltersScreen extends StatefulWidget {
   final String childId;
   const FiltersScreen({super.key, required this.childId});
+
   @override
   State<FiltersScreen> createState() => _FiltersScreenState();
 }
+
 class _FiltersScreenState extends State<FiltersScreen> {
   final _valueController = TextEditingController();
   String _selectedType = 'block'; 
   bool _isLoading = false;
   late final Stream<QuerySnapshot> _rulesStream;
+
   @override
   void initState() {
     super.initState();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    // 🚀 Consulta optimizada con índice compuesto y alineada a reglas de seguridad
     _rulesStream = FirebaseFirestore.instance
         .collection('filter_rules')
+        .where('tutorId', isEqualTo: uid)
         .where('childId', isEqualTo: widget.childId)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
+
   void _addRule() async {
     if (_valueController.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
@@ -50,6 +60,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -119,6 +130,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
+                  // 🛡️ Removido el print espía; manejo limpio del error en interfaz
                   return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -195,6 +207,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
       ),
     );
   }
+
   Widget _typeButton(String label, String type) {
     final bool isSelected = _selectedType == type;
     return ChoiceChip(
