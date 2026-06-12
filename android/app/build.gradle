@@ -30,6 +30,8 @@ android {
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
+        coreLibraryDesugaringEnabled = true
+        
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -42,10 +44,11 @@ android {
         applicationId = "org.vestaopensource.tutor"
         
         minSdk = 23
-        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
+        
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -53,4 +56,8 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }

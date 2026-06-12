@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-class AlertsScreen extends StatelessWidget {
+import 'package:vesta_app/services/notification_service.dart';
+
+class AlertsScreen extends StatefulWidget {
   final String childId;
   const AlertsScreen({super.key, required this.childId});
+
+  @override
+  State<AlertsScreen> createState() => _AlertsScreenState();
+}
+
+class _AlertsScreenState extends State<AlertsScreen> {
+  final NotificationService _notificationService = NotificationService();
+  
+  String? _ultimoAlertIdProcesado;
+
   @override
   Widget build(BuildContext context) {
     final String? uid = FirebaseAuth.instance.currentUser?.uid;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -22,16 +35,40 @@ class AlertsScreen extends StatelessWidget {
               : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('alerts')
-                      .where('childId', isEqualTo: childId)
+                      .where('tutorId', isEqualTo: uid)  
+                      .where('childId', isEqualTo: widget.childId) // Se usa widget.childId por estar dentro del State
                       .orderBy('timestamp', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error de acceso: ${snapshot.error}', style: const TextStyle(color: Colors.red, fontSize: 12)));
+                    }
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    
                     final docs = snapshot.data!.docs;
                     if (docs.isEmpty) return const Center(child: Text("Sin incidentes reportados", style: TextStyle(color: Colors.grey)));
+                    
+                    // 🛡️ FILTRO INTELIGENTE ANTI-SPAM
+                    final ultimaAlertaDoc = docs.first;
+                    final String idAlertaActual = ultimaAlertaDoc.id; // El ID único generado por Firestore
+
+                    if (_ultimoAlertIdProcesado != idAlertaActual) {
+                      // Registramos la alerta en memoria inmediatamente ANTES del callback para evitar duplicados simultáneos
+                      _ultimoAlertIdProcesado = idAlertaActual;
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final alertData = ultimaAlertaDoc.data() as Map<String, dynamic>;
+                        _notificationService.mostrarNotificacionInmediata(
+                          titulo: alertData['title'] ?? 'Incidente Detectado',
+                          subtitulo: alertData['subtitle'] ?? 'Se ha registrado una evasión.',
+                          tipo: alertData['type'] ?? 'critical',
+                        );
+                      });
+                    }
+                    
                     return ListView.builder(
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
@@ -39,6 +76,7 @@ class AlertsScreen extends StatelessWidget {
                         final alertData = doc.data() as Map<String, dynamic>; 
                         Color accentColor = const Color(0xFF2B5BDE);
                         Color titleColor = const Color(0xFF4DABF7);
+                        
                         if (alertData['type'] == 'critical') {
                           accentColor = const Color(0xFFE03131);
                           titleColor = const Color(0xFFFF6B6B);
@@ -46,6 +84,7 @@ class AlertsScreen extends StatelessWidget {
                           accentColor = const Color(0xFFFCC419);
                           titleColor = const Color(0xFFFCC419);
                         }
+                        
                         return Container(
                           margin: const EdgeInsets.symmetric(vertical: 5),
                           decoration: BoxDecoration(
