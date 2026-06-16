@@ -6,10 +6,12 @@ A new Flutter project.
 
 This project is a starting point for a Flutter application.
 
-VESTA es una solución de control parental de código abierto, 
-enfocada en la protección digital de menores de edad. 
-Su arquitectura multiplataforma permite la operación nativa en Android e iOS, 
-así como compatibilidad con Windows, Linux y macOS, 
-garantizando una experiencia unificada para tutores y 
-menores sin depender del sistema operativo utilizado.
+VESTA is an open-source parental control solution,
+focused on the digital protection of minors.
+
+Its cross-platform architecture allows native operation on Android and iOS,
+as well as compatibility with Windows, Linux, and macOS,
+
+guaranteeing a unified experience for guardians and
+minors regardless of the operating system used.
 
