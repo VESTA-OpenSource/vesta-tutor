@@ -13,25 +13,19 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
-
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
+def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
 android {
     ndkVersion "26.1.10909125"
     
     namespace = "com.example.vesta_app"
-    compileSdk = flutter.compileSdkVersion
+    
+    // CAMBIO IMPORTANTE: SDK 35 para compatibilidad con librerías nuevas
+    compileSdk = 35 
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
-        
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -44,7 +38,10 @@ android {
         applicationId = "org.vestaopensource.tutor"
         
         minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        
+        // CAMBIO IMPORTANTE: targetSdk 35
+        targetSdk = 35 
+        
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         
