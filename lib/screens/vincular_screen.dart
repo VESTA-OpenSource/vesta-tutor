@@ -3,45 +3,87 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class VincularScreen extends StatefulWidget {
+  const VincularScreen({super.key});
+
   @override
-  _VincularScreenState createState() => _VincularScreenState();
+  State<VincularScreen> createState() => _VincularScreenState();
 }
 
 class _VincularScreenState extends State<VincularScreen> {
   final _codeController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _vincular() async {
     String codigo = _codeController.text.trim().toUpperCase();
-    
-    // Buscamos en todas las colecciones 'hijos' de todos los usuarios
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('hijos')
-        .where('pairingCode', isEqualTo: codigo)
-        .get();
+    if (codigo.isEmpty) return;
 
-    if (snapshot.docs.isNotEmpty) {
-      final doc = snapshot.docs.first;
-      // Guardamos el ID del hijo en el celular para que el LocationService lo use
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('childId', doc.id);
-      
-      // Actualizamos a 'vinculado'
-      await doc.reference.update({'status': 'vinculado'});
-      
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('¡Vinculado con éxito!')));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Código no encontrado')));
+    setState(() => _isLoading = true);
+
+    try {
+      // Buscamos en todas las colecciones 'hijos' de todos los usuarios usando CollectionGroup
+      final snapshot = await FirebaseFirestore.instance
+          .collectionGroup('hijos')
+          .where('pairingCode', isEqualTo: codigo)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+
+        // Guardamos el ID del hijo en SharedPreferences para uso local (Background Service)
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('childId', doc.id);
+
+        // Actualizamos a 'vinculado'
+        await doc.reference.update({'status': 'vinculado'});
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('¡Vinculado con éxito!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Código no encontrado')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          TextField(controller: _codeController, decoration: InputDecoration(labelText: 'Ingresa el código del Tutor')),
-          ElevatedButton(onPressed: _vincular, child: Text('Vincular Dispositivo')),
-        ],
+      appBar: AppBar(title: const Text("Vinculación Vesta")),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _codeController, 
+              decoration: const InputDecoration(
+                labelText: 'Ingresa el código del Tutor',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _isLoading 
+              ? const CircularProgressIndicator()
+              : ElevatedButton(
+                  onPressed: _vincular, 
+                  child: const Text('Vincular Dispositivo'),
+                ),
+          ],
+        ),
       ),
     );
   }

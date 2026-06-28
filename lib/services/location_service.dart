@@ -1,54 +1,24 @@
-import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LocationService {
+class TutorLocationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 📡 Transmite la ubicación en vivo a Firestore de forma constante
-  Future<void> comenzarRastreoTiempoReal(String childId) async {
-    bool servicioHabilitado;
-    LocationPermission permiso;
-
-    // 1. Verificar si el GPS físico del celular está encendido
-    servicioHabilitado = await Geolocator.isLocationServiceEnabled();
-    if (!servicioHabilitado) {
-      print('🔴 El GPS físico del dispositivo está apagado.');
-      return;
-    }
-
-    // 2. Validar y solicitar los permisos al usuario en pantalla
-    permiso = await Geolocator.checkPermission();
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
-      if (permiso == LocationPermission.denied) {
-        print('🔴 Permiso de GPS denegado por el usuario.');
-        return;
+  // Este stream escucha en tiempo real la posición del hijo
+  // Ruta: users/{tutorId}/hijos/{childId}
+  Stream<Map<String, dynamic>?> obtenerUbicacionHijoStream(String tutorId, String childId) {
+    return _db
+        .collection('users')
+        .doc(tutorId)
+        .collection('hijos')
+        .doc(childId)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data()!;
+        // Retornamos el campo 'position' si existe y es del tipo correcto
+        return data['position'] as Map<String, dynamic>?;
       }
-    }
-
-    if (permiso == LocationPermission.deniedForever) {
-      print('🔴 Permisos denegados permanentemente en los ajustes del sistema.');
-      return;
-    }
-
-    // 3. Escucha cada cambio de posición del chip GPS y lo manda directo a Firestore
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high, 
-        distanceFilter: 10, // Se actualiza cada 10 metros
-      ),
-    ).listen((Position position) async {
-      print('📍 Nueva ubicación detectada: ${position.latitude}, ${position.longitude}');
-      
-      await _db.collection('children').doc(childId).set({
-        'position': {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-        },
-        'lastLocationUpdate': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      
-      print('💾 Ubicación sincronizada con éxito en Firestore');
+      return null;
     });
   }
 }

@@ -1,8 +1,8 @@
 plugins {
     id "com.android.application"
-    id 'com.google.gms.google-services'
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services" // Mantenlo aquí al final
 }
 
 def localProperties = new Properties()
@@ -17,12 +17,9 @@ def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "
 def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
 android {
-    ndkVersion "26.1.10909125"
-    
-    namespace = "com.example.vesta_app"
-    
-    // CAMBIO IMPORTANTE: SDK 35 para compatibilidad con librerías nuevas
+    namespace = "org.vestaopensource.tutor"
     compileSdk = 35 
+    ndkVersion = "26.1.10909125"
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
@@ -36,21 +33,27 @@ android {
 
     defaultConfig {
         applicationId = "org.vestaopensource.tutor"
-        
         minSdk = 23
-        
-        // CAMBIO IMPORTANTE: targetSdk 35
         targetSdk = 35 
-        
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
-        
         multiDexEnabled = true
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            // CORRECCIÓN: Nunca uses debug en release. 
+            // Si no tienes una keystore, déjalo vacío o usa proguardFiles
+            signingConfig = signingConfigs.debug 
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    // AÑADIDO: Previene errores de duplicación de archivos en librerías nativas
+    packaging {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
 }

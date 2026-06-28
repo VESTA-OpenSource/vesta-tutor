@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -28,11 +28,9 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users') 
-            .doc(uid)
-            .collection('hijos')
-            .snapshots(),
+        stream: uid != null
+            ? FirebaseFirestore.instance.collection('users').doc(uid).collection('hijos').snapshots()
+            : const Stream.empty(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFFE03131)));
@@ -45,20 +43,18 @@ class DashboardScreen extends StatelessWidget {
               ),
             );
           }
-
           final hijos = snapshot.data!.docs;
-
           return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 12),
             itemCount: hijos.length,
             itemBuilder: (context, index) {
-              final doc = hijos[index]; 
+              final doc = hijos[index];
               final hijo = doc.data() as Map<String, dynamic>;
               final hijoId = doc.id;
               
               // Verificamos si está vinculado
               bool estaVinculado = hijo['status'] == 'vinculado';
-
+              
               return Card(
                 color: const Color(0xFF242831),
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -68,8 +64,8 @@ class DashboardScreen extends StatelessWidget {
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFF1A1D24),
                     child: Icon(
-                      estaVinculado ? Icons.link : Icons.link_off, 
-                      color: estaVinculado ? Colors.green : const Color(0xFFE03131)
+                      estaVinculado ? Icons.link : Icons.link_off,
+                      color: estaVinculado ? Colors.green : const Color(0xFFE03131),
                     ),
                   ),
                   title: Text(
@@ -99,20 +95,19 @@ class DashboardScreen extends StatelessWidget {
                     onPressed: () => _confirmarEliminacion(context, uid!, hijoId),
                   ),
                   onTap: () {
+                    // Navegación segura usando extra
                     context.go('/home/$hijoId', extra: hijo['nombre']);
                   },
                 ),
               );
-            }, 
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFE03131),
         foregroundColor: Colors.white,
-        onPressed: () {
-          context.go('/add-child');
-        },
+        onPressed: () => context.go('/add-child'),
         child: const Icon(Icons.add),
       ),
     );

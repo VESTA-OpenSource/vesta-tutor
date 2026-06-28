@@ -44,6 +44,7 @@ class _AddChildScreenState extends State<AddChildScreen> {
         int.parse(_ageController.text.trim()),
         _avatarColors[_selectedColorIndex].value,
       );
+      // Redirección segura tras guardar
       if (mounted) context.go('/');
     } catch (e) {
       debugPrint("Error: $e");
@@ -105,7 +106,14 @@ class _AddChildScreenState extends State<AddChildScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        // Navegación segura para evitar GoError
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/');
+                        }
+                      },
                       child: const Text(
                         "Cancelar",
                         style: TextStyle(color: Colors.grey),

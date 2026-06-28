@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vesta_app/main.dart';
+import 'package:vesta_app/features/auth/login_screen.dart';
+
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Al iniciar la app, debería mostrar la pantalla de Login', (WidgetTester tester) async {
+    // Necesitamos pasar el router configurado desde tu main.dart
+    // Nota: Es mejor instanciar AppRouter aquí para controlar la inyección
     await tester.pumpWidget(const MyApp());
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+
+    // Esperamos a que la navegación inicial termine
+    await tester.pumpAndSettle();
+
+    // Verificamos que estamos en LoginScreen (puedes buscar un texto específico de tu Login)
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 }

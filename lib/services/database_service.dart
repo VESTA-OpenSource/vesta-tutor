@@ -7,7 +7,7 @@ class DatabaseService {
 
   Future<void> crearNuevoHijo(String nombre, int edad, int colorValue) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) throw Exception("Usuario no autenticado");
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     String codigo = List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
@@ -23,8 +23,8 @@ class DatabaseService {
   }
 
   Future<void> activarDispositivo(String codigo, String deviceId) async {
-    
-    await _db.runTransaction((transaction) async {
+    return await _db.runTransaction((transaction) async {
+      // 1. Buscamos el documento con el código proporcionado
       final snapshot = await _db.collectionGroup('hijos')
           .where('pairingCode', isEqualTo: codigo.toUpperCase())
           .where('status', isEqualTo: 'esperando_vinculacion')
@@ -36,16 +36,21 @@ class DatabaseService {
       }
 
       final docRef = snapshot.docs.first.reference;
+      final tutorId = docRef.parent.parent?.id;
 
+      if (tutorId == null) throw Exception("Error al identificar al tutor.");
+
+      // 2. Actualizamos el estado del hijo
       transaction.update(docRef, {
         'status': 'vinculado',
         'deviceId': deviceId,
         'vinculadoAt': FieldValue.serverTimestamp(),
       });
 
+      // 3. Registramos el dispositivo para el seguimiento
       transaction.set(_db.collection('devices').doc(deviceId), {
         'hijoId': docRef.id,
-        'tutorId': docRef.parent.parent?.id,
+        'tutorId': tutorId,
         'lastUpdate': FieldValue.serverTimestamp(),
         'status': 'active',
       });

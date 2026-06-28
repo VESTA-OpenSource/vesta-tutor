@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class FiltersScreen extends StatefulWidget {
   final String childId;
-  const FiltersScreen({super.key, required this.childId});
+  final String tutorId;
+  const FiltersScreen({super.key, required this.childId, required this.tutorId});
 
   @override
   State<FiltersScreen> createState() => _FiltersScreenState();
@@ -12,21 +12,20 @@ class FiltersScreen extends StatefulWidget {
 
 class _FiltersScreenState extends State<FiltersScreen> {
   final _valueController = TextEditingController();
-  String _selectedType = 'block'; 
+  String _selectedType = 'block';
   bool _isLoading = false;
   late final Stream<QuerySnapshot> _rulesStream;
 
   @override
   void initState() {
     super.initState();
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
-    // 🚀 Consulta optimizada con índice compuesto y alineada a reglas de seguridad
+    // Acceso a la subcolección del hijo específico
     _rulesStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.tutorId)
+        .collection('hijos')
+        .doc(widget.childId)
         .collection('filter_rules')
-        .where('tutorId', isEqualTo: uid)
-        .where('childId', isEqualTo: widget.childId)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
@@ -34,11 +33,14 @@ class _FiltersScreenState extends State<FiltersScreen> {
   void _addRule() async {
     if (_valueController.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
     try {
-      await FirebaseFirestore.instance.collection('filter_rules').add({
-        'tutorId': uid,
-        'childId': widget.childId,
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.tutorId)
+          .collection('hijos')
+          .doc(widget.childId)
+          .collection('filter_rules')
+          .add({
         'type': _selectedType,
         'value': _valueController.text.trim().toLowerCase(),
         'isEnabled': true,
@@ -68,10 +70,8 @@ class _FiltersScreenState extends State<FiltersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Configuración de Filtros:", 
-            style: TextStyle(color: Color(0xFFA4A9B3), fontWeight: FontWeight.bold),
-          ),
+          const Text("Configuración de Filtros:", 
+              style: TextStyle(color: Color(0xFFA4A9B3), fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -89,16 +89,11 @@ class _FiltersScreenState extends State<FiltersScreen> {
                   controller: _valueController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: _selectedType == 'keyword' 
-                        ? 'Ej: apuestas, violencia' 
-                        : 'Ej: facebook.com, youtube.com',
+                    hintText: _selectedType == 'keyword' ? 'Ej: apuestas' : 'Ej: youtube.com',
                     hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
                     filled: true,
                     fillColor: const Color(0xFF222630),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                   ),
                 ),
               ),
@@ -106,93 +101,41 @@ class _FiltersScreenState extends State<FiltersScreen> {
               _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE03131),
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE03131)),
                       onPressed: _addRule,
                       child: const Icon(Icons.add, color: Colors.white),
                     ),
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Reglas Activas',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _rulesStream, 
+              stream: _rulesStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  // 🛡️ Removido el print espía; manejo limpio del error en interfaz
-                  return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('No hay reglas configuradas.', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                  );
-                }
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('Sin reglas.', style: TextStyle(color: Colors.white54)));
+                
                 final rules = snapshot.data!.docs;
                 return ListView.builder(
                   itemCount: rules.length,
                   itemBuilder: (context, index) {
                     final doc = rules[index];
                     final rule = doc.data() as Map<String, dynamic>;
-                    final ruleId = doc.id;
-                    IconData icon;
-                    Color iconColor;
-                    if (rule['type'] == 'block') {
-                      icon = Icons.block;
-                      iconColor = const Color(0xFFE03131);
-                    } else if (rule['type'] == 'allow') {
-                      icon = Icons.check_circle;
-                      iconColor = Colors.green;
-                    } else {
-                      icon = Icons.abc;
-                      iconColor = Colors.amber;
-                    }
                     return Card(
                       color: const Color(0xFF222630),
-                      margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
-                        leading: Icon(icon, color: iconColor),
-                        title: Text(
-                          rule['value'] ?? '',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          rule['type'] == 'block' 
-                              ? 'Bloqueado' 
-                              : rule['type'] == 'allow' ? 'Permitido' : 'Palabra Prohibida',
-                          style: const TextStyle(color: Colors.white38, fontSize: 11),
-                        ),
+                        title: Text(rule['value'] ?? '', style: const TextStyle(color: Colors.white)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Switch(
                               value: rule['isEnabled'] ?? true,
-                              activeColor: const Color(0xFFE03131),
-                              onChanged: (value) async {
-                                await FirebaseFirestore.instance
-                                    .collection('filter_rules')
-                                    .doc(ruleId)
-                                    .update({'isEnabled': value});
-                              },
+                              onChanged: (val) => _updateRule(doc.id, val),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.white38, size: 18),
-                              onPressed: () async {
-                                await FirebaseFirestore.instance
-                                    .collection('filter_rules')
-                                    .doc(ruleId)
-                                    .delete();
-                              },
+                              icon: const Icon(Icons.delete, color: Colors.white38),
+                              onPressed: () => _deleteRule(doc.id),
                             ),
                           ],
                         ),
@@ -208,26 +151,29 @@ class _FiltersScreenState extends State<FiltersScreen> {
     );
   }
 
+  Future<void> _updateRule(String ruleId, bool isEnabled) async {
+    await FirebaseFirestore.instance
+        .collection('users').doc(widget.tutorId)
+        .collection('hijos').doc(widget.childId)
+        .collection('filter_rules').doc(ruleId)
+        .update({'isEnabled': isEnabled});
+  }
+
+  Future<void> _deleteRule(String ruleId) async {
+    await FirebaseFirestore.instance
+        .collection('users').doc(widget.tutorId)
+        .collection('hijos').doc(widget.childId)
+        .collection('filter_rules').doc(ruleId)
+        .delete();
+  }
+
   Widget _typeButton(String label, String type) {
-    final bool isSelected = _selectedType == type;
     return ChoiceChip(
       label: Text(label),
-      selected: isSelected,
+      selected: _selectedType == type,
       selectedColor: const Color(0xFFE03131),
       backgroundColor: const Color(0xFF222630),
-      showCheckmark: false,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.white60, 
-        fontWeight: FontWeight.bold, 
-        fontSize: 11
-      ),
-      onSelected: (bool selected) {
-        if (selected) {
-          setState(() {
-            _selectedType = type;
-          });
-        }
-      },
+      onSelected: (bool selected) => setState(() => _selectedType = type),
     );
   }
 }
