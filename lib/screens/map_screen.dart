@@ -32,32 +32,33 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _iniciarEscuchaUbicacion() {
+    // Escuchamos directamente el documento del hijo en la colección 'telemetria'
     _locationSubscription = FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.tutorId)
-        .collection('hijos')
-        .doc(widget.childId)
+        .collection('telemetria')
+        .doc(widget.childId) 
         .snapshots()
         .listen((snapshot) {
       if (snapshot.exists && mounted) {
         final data = snapshot.data();
-        final pos = data?['position'] as Map<String, dynamic>?;
+        
+        // Extraemos los campos 'lat' y 'lng' según tu base de datos
+        final lat = data?['lat'] as num?;
+        final lng = data?['lng'] as num?;
         final timestamp = data?['timestamp'] as Timestamp?;
         
-        if (pos != null) {
-          final newPos = LatLng(
-            (pos['latitude'] as num).toDouble(), 
-            (pos['longitude'] as num).toDouble()
-          );
+        if (lat != null && lng != null) {
+          final newPos = LatLng(lat.toDouble(), lng.toDouble());
           
           setState(() {
             _ultimaUbicacion = newPos;
             if (timestamp != null) {
               _lastUpdate = DateFormat('HH:mm:ss').format(timestamp.toDate());
+            } else {
+              _lastUpdate = DateFormat('HH:mm:ss').format(DateTime.now());
             }
           });
           
-          // Movemos el mapa suavemente
+          // Movemos el mapa a la nueva posición automáticamente
           _mapController.move(newPos, 16.0);
         }
       }
@@ -79,7 +80,7 @@ class _MapScreenState extends State<MapScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Ubicación en Tiempo Real", style: TextStyle(fontSize: 16)),
+            const Text("Rastreo en Tiempo Real", style: TextStyle(fontSize: 16)),
             Text(
               "Última señal: $_lastUpdate", 
               style: const TextStyle(fontSize: 11, color: Colors.grey)
@@ -96,7 +97,6 @@ class _MapScreenState extends State<MapScreen> {
         ),
         children: [
           TileLayer(
-            // El mapa oscuro de CartoDB es ideal para el modo noche de tu app
             urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
             subdomains: const ['a', 'b', 'c'],
           ),
@@ -106,7 +106,11 @@ class _MapScreenState extends State<MapScreen> {
                 point: _ultimaUbicacion,
                 width: 40,
                 height: 40,
-                child: const Icon(Icons.radar, color: Color(0xFFE03131), size: 30),
+                child: const Icon(
+                  Icons.person_pin_circle, 
+                  color: Color(0xFFE03131), 
+                  size: 40
+                ),
               ),
             ],
           ),

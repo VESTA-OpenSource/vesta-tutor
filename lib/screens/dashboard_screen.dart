@@ -51,52 +51,28 @@ class DashboardScreen extends StatelessWidget {
               final doc = hijos[index];
               final hijo = doc.data() as Map<String, dynamic>;
               final hijoId = doc.id;
-              
-              // Verificamos si está vinculado
               bool estaVinculado = hijo['status'] == 'vinculado';
               
               return Card(
                 color: const Color(0xFF242831),
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF1A1D24),
-                    child: Icon(
-                      estaVinculado ? Icons.link : Icons.link_off,
-                      color: estaVinculado ? Colors.green : const Color(0xFFE03131),
-                    ),
+                  leading: Icon(
+                    estaVinculado ? Icons.link : Icons.link_off,
+                    color: estaVinculado ? Colors.green : const Color(0xFFE03131),
                   ),
-                  title: Text(
-                    hijo['nombre'] ?? 'Sin nombre',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        'Código: ${hijo['pairingCode'] ?? 'GENERANDO...'}',
-                        style: TextStyle(
-                          color: estaVinculado ? Colors.green.shade200 : Colors.amber.shade200,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        'Estado: ${estaVinculado ? "Vinculado" : "Esperando vinculación"}',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Color(0xFFE03131)),
-                    onPressed: () => _confirmarEliminacion(context, uid!, hijoId),
-                  ),
+                  title: Text(hijo['nombre'] ?? 'Sin nombre', style: const TextStyle(color: Colors.white)),
+                  subtitle: Text('Estado: ${estaVinculado ? "Vinculado" : "Esperando vinculación"}', 
+                      style: TextStyle(color: Colors.grey.shade600)),
                   onTap: () {
-                    // Navegación segura usando extra
-                    context.go('/home/$hijoId', extra: hijo['nombre']);
+                    // VALIDACIÓN: Solo entramos si está vinculado
+                    if (estaVinculado) {
+                      context.go('/home/$hijoId', extra: hijo['nombre']);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El menor aún no está vinculado.')),
+                      );
+                    }
                   },
                 ),
               );
@@ -106,38 +82,8 @@ class DashboardScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFE03131),
-        foregroundColor: Colors.white,
         onPressed: () => context.go('/add-child'),
         child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  void _confirmarEliminacion(BuildContext context, String uid, String hijoId) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF242831),
-        title: const Text('¿Eliminar perfil?', style: TextStyle(color: Colors.white)),
-        content: const Text('Esta acción no se puede deshacer.', style: TextStyle(color: Colors.grey)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(uid)
-                  .collection('hijos')
-                  .doc(hijoId)
-                  .delete();
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Color(0xFFE03131))),
-          ),
-        ],
       ),
     );
   }
